@@ -1,0 +1,7 @@
+<!--
+  ~ This file is subject to the terms and conditions defined in 'LICENSE' in the source code package
+  -->
+
+<resources>
+    <dimen name="fab_margin">16dp</dimen>
+</resources>
