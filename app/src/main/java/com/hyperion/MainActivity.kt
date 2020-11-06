@@ -1,13 +1,11 @@
-/*
- * This file is subject to the terms and conditions defined in 'LICENSE' in the source code package
- */
-
 package com.hyperion
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.os.Environment
+import android.text.format.Formatter
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -19,6 +17,11 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
+import java.io.IOException
+import java.net.DatagramSocket
+import java.net.InetAddress
+import java.net.SocketException
+import java.net.UnknownHostException
 
 class MainActivity : AppCompatActivity() {
     val TAG = MainActivity::class.java.simpleName
@@ -103,6 +106,7 @@ class MainActivity : AppCompatActivity() {
             override fun onVideoSaved(file: File) {
                 Toast.makeText(this@MainActivity, "Recording Saved", Toast.LENGTH_SHORT).show()
                 Log.d(TAG, "onVideoSaved $videoRecordingFilePath")
+                runScript(serverIp, serverPort, "V", videoRecordingFilePath)
             }
 
             override fun onError(videoCaptureError: Int, message: String, cause: Throwable?) {
@@ -117,6 +121,7 @@ class MainActivity : AppCompatActivity() {
             override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                 Toast.makeText(this@MainActivity, "Image Captured", Toast.LENGTH_SHORT).show()
                 Log.d(TAG, "onImageSaved $imageCaptureFilePath")
+                runScript(serverIp, serverPort, "P", imageCaptureFilePath)
             }
 
             override fun onError(exception: ImageCaptureException) {
@@ -124,5 +129,74 @@ class MainActivity : AppCompatActivity() {
                 Log.e(TAG, "onError $exception")
             }
         })
+    }
+
+
+    private var serverIp: String = getServerIP()
+    private var serverPort = 34200
+
+    /**
+     * Retrieves the local ip address of the device
+     *
+     * @return The local IPv4 address to be used as the server ip (for demo/local testing purposes)
+     */
+    private fun getServerIP(): String {
+        try {
+            DatagramSocket().use { socket ->
+                socket.connect(InetAddress.getByName("1.1.1.1"), serverPort)
+                val wifiManager: WifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
+                val ip: String = Formatter.formatIpAddress(wifiManager.connectionInfo.ipAddress)
+                return ip
+                //return socket.localAddress.hostAddress
+            }
+        } catch (e: UnknownHostException) {
+            e.printStackTrace()
+            return "-1"
+        } catch (e: SocketException) {
+            e.printStackTrace()
+            return "-1"
+        }
+    }
+
+    /**
+     * Setter for server_ip field
+     *
+     * @param ip Server IP to be used by this client app when sending out data
+     */
+    private fun setServerIP(ip: String?) {
+        if (ip != null) {
+            serverIp = ip
+        }
+    }
+
+    /**
+     * Setter for server_port field
+     *
+     * @param port Server Port to be used by this client app when sending out data
+     */
+    private fun setServerPort(port: Int) {
+        serverPort = port
+    }
+
+    /**
+     * Runs the python script that connects the client to the server
+     *
+     * @param server_ip The server's IPv4 address
+     * @param server_port The server's port
+     * @param format Either P or V, for sending a picture or video, respectively
+     * @param path The absolute path to the required picture or video
+     * @throws IOException If an I/O error occurs
+     */
+    @Throws(IOException::class)
+    private fun runScript(server_ip: String, server_port: Int, format: String, path: String) {
+        val cmd = arrayOf(
+                "python",
+                "client.py",
+                server_ip,
+                server_port.toString(),
+                format,
+                path
+        )
+        Runtime.getRuntime().exec(cmd)
     }
 }

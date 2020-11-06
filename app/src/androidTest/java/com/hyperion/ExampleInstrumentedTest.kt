@@ -1,10 +1,6 @@
-/*
- * This file is subject to the terms and conditions defined in 'LICENSE' in the source code package
- */
+package com.hyperion
 
-package com.hyperion;
-
-import android.content.Context;
+import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
